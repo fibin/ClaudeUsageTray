@@ -16,8 +16,8 @@ Grab the latest build from the [Releases page](https://github.com/fibin/ClaudeUs
 
 | File | Size | Requirements |
 |---|---|---|
-| `ClaudeUsageTray-win-x64.exe` | ~60 MB | None, runs on any Windows 10/11 x64 |
-| `ClaudeUsageTray-win-x64-small.exe` | ~1 MB | [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
+| `ClaudeUsageTray-win-x64.exe` | ~70 MB | None, runs on any Windows 10/11 x64 |
+| `ClaudeUsageTray-win-x64-small.exe` | < 1 MB | [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
 
 Just run the exe: there's no installer and no window, the app goes straight to the tray.
 Windows may hide the icon under the `^` arrow; drag it onto the taskbar to keep it visible.
