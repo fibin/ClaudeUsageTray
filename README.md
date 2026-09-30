@@ -42,8 +42,9 @@ dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile
 # output: bin\Release\net8.0-windows\win-x64\publish\ClaudeUsageTray.exe
 ```
 
-Releases are built by GitHub Actions (`.github/workflows/release.yml`): pushing a tag like
-`v1.0.1` builds both exe variants and attaches them to a new release.
+Releases are built by GitHub Actions (`.github/workflows/release.yml`). To publish a new
+version, bump `<Version>` in `ClaudeUsageTray.csproj` and push to `main`: the workflow builds
+both exe variants, creates the `v<Version>` tag and attaches the files to a new release.
 
 ## Where the data comes from
 
