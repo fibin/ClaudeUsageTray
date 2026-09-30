@@ -10,11 +10,30 @@ A Windows tray icon that shows how much of your Claude subscription (Pro/Max) us
 
 ![Icon at different levels](icon-preview.png)
 
-## Build
+## Download
+
+Grab the latest build from the [Releases page](https://github.com/fibin/ClaudeUsageTray/releases/latest):
+
+| File | Size | Requirements |
+|---|---|---|
+| `ClaudeUsageTray-win-x64.exe` | ~60 MB | None, runs on any Windows 10/11 x64 |
+| `ClaudeUsageTray-win-x64-small.exe` | ~1 MB | [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
+
+Just run the exe: there's no installer and no window, the app goes straight to the tray.
+Windows may hide the icon under the `^` arrow; drag it onto the taskbar to keep it visible.
+To start it with Windows, right-click the icon and enable **Запускать вместе с Windows**
+("Start with Windows"; the UI is currently in Russian)
+(put the exe in its permanent location first, since autostart remembers the path).
+
+The exe is not code-signed, so SmartScreen may warn on first launch:
+click **More info → Run anyway**.
+
+## Build from source
 
 Requires the .NET 8 SDK (or newer).
 
 ```powershell
+git clone https://github.com/fibin/ClaudeUsageTray.git
 cd ClaudeUsageTray
 dotnet run                     # run from source
 
@@ -22,6 +41,9 @@ dotnet run                     # run from source
 dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 # output: bin\Release\net8.0-windows\win-x64\publish\ClaudeUsageTray.exe
 ```
+
+Releases are built by GitHub Actions (`.github/workflows/release.yml`): pushing a tag like
+`v1.0.1` builds both exe variants and attaches them to a new release.
 
 ## Where the data comes from
 
