@@ -2,7 +2,7 @@
 
 A Windows tray icon that shows how much of your Claude subscription (Pro/Max) usage limit is left.
 
-- **Icon**: a stack of segments filled by what's left of the 5-hour session window.
+- **Icon**: a vertical battery whose solid fill shows what's left of the 5-hour session window.
   Green above 50%, yellow at 21–50%, red at 20% or below, gray when there's no data or it's stale.
 - **Hover**: a popup with two bars, one for the session (5 h) and one for the week, plus reset times.
 - **Left click**: refresh now (at most once every 30 seconds).
@@ -20,10 +20,35 @@ Grab the latest build from the [Releases page](https://github.com/fibin/ClaudeUs
 | `ClaudeUsageTray-win-x64-small.exe` | < 1 MB | [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
 
 Just run the exe: there's no installer and no window, the app goes straight to the tray.
-Windows may hide the icon under the `^` arrow; drag it onto the taskbar to keep it visible.
-To start it with Windows, right-click the icon and enable **Запускать вместе с Windows**
-("Start with Windows"; the UI is currently in Russian)
+To start it with Windows, right-click the icon and enable **Start with Windows**
 (put the exe in its permanent location first, since autostart remembers the path).
+
+The exe is not code-signed, so SmartScreen may warn on first launch:
+click **More info → Run anyway**.
+
+## Keep the icon always visible
+
+By default Windows hides new tray icons in the overflow menu (or, if the hidden icon menu is
+turned off, doesn't show them at all). To pin the indicator next to the clock:
+
+**Windows 11**
+
+1. Make sure the app is running.
+2. Right-click an empty spot on the taskbar and choose **Taskbar settings**.
+3. Expand **Other system tray icons**.
+4. Find **ClaudeUsageTray** and switch it **On**.
+
+**Windows 10**
+
+1. Right-click the taskbar and choose **Taskbar settings**.
+2. Under **Notification area**, click **Select which icons appear on the taskbar**.
+3. Switch **ClaudeUsageTray** **On**.
+
+If the hidden icon menu (the `^` arrow) is enabled, you can also simply drag the icon from it
+onto the taskbar.
+
+Windows remembers this setting per exe path. If you move the exe or switch from `dotnet run`
+to a downloaded build, turn the switch on again for the new location.
 
 The exe is not code-signed, so SmartScreen may warn on first launch:
 click **More info → Run anyway**.
@@ -94,7 +119,7 @@ known data stays on screen.
 |---|---|
 | `TrayController.cs` | Tray icon, polling, hover popup, menu |
 | `Usage.cs` | HTTP client, response parsing, token lookup |
-| `IconRenderer.cs` | Drawing the stack icon, colors |
+| `IconRenderer.cs` | Drawing the battery icon, colors |
 | `UsagePopup.xaml(.cs)` | Popup with the two bars |
 | `AppSettings.cs` | settings.json |
 | `Native.cs` | WinAPI and autostart (HKCU\…\Run) |

@@ -11,7 +11,7 @@ namespace ClaudeUsageTray
     /// <summary>Owns the tray icon, the polling loop and the hover popup.</summary>
     public sealed class TrayController : IDisposable
     {
-        private static readonly CultureInfo Ru = new("ru-RU");
+        private static readonly CultureInfo Culture = CultureInfo.GetCultureInfo("en-US");
 
         // Hide the popup once the cursor is this far (physical px) from where it last touched the icon.
         private const int HoverLeaveDistance = 28;
@@ -41,12 +41,12 @@ namespace ClaudeUsageTray
         public TrayController()
         {
             var menu = new Forms.ContextMenuStrip();
-            menu.Items.Add("Обновить сейчас", null, async (_, _) => await RefreshAsync());
-            menu.Items.Add("Открыть лимиты на claude.ai", null, (_, _) => OpenShell("https://claude.ai/settings/usage"));
-            menu.Items.Add("Настройки (settings.json)", null, (_, _) => OpenSettings());
+            menu.Items.Add("Refresh now", null, async (_, _) => await RefreshAsync());
+            menu.Items.Add("Open usage on claude.ai", null, (_, _) => OpenShell("https://claude.ai/settings/usage"));
+            menu.Items.Add("Settings (settings.json)", null, (_, _) => OpenSettings());
             menu.Items.Add(new Forms.ToolStripSeparator());
 
-            _autostartItem = new Forms.ToolStripMenuItem("Запускать вместе с Windows") { CheckOnClick = true };
+            _autostartItem = new Forms.ToolStripMenuItem("Start with Windows") { CheckOnClick = true };
             _autostartItem.Click += (_, _) => ToggleAutostart();
             menu.Items.Add(_autostartItem);
             menu.Opening += (_, _) =>
@@ -58,7 +58,7 @@ namespace ClaudeUsageTray
             menu.Closed += (_, _) => _menuOpen = false;
 
             menu.Items.Add(new Forms.ToolStripSeparator());
-            menu.Items.Add("Выход", null, (_, _) => Exit());
+            menu.Items.Add("Exit", null, (_, _) => Exit());
 
             _notifyIcon = new Forms.NotifyIcon
             {
@@ -119,7 +119,7 @@ namespace ClaudeUsageTray
                 if (backoff > MaxBackoff) backoff = MaxBackoff;
                 if (backoff < next) backoff = next;
                 next = backoff;
-                _error = $"{ex.Message} Повтор через {FormatSpan(next)}.";
+                _error = $"{ex.Message} Retrying in {FormatSpan(next)}.";
             }
             catch (UsageException ex)
             {
@@ -127,7 +127,7 @@ namespace ClaudeUsageTray
             }
             catch (Exception ex)
             {
-                _error = "Ошибка: " + ex.Message;
+                _error = "Error: " + ex.Message;
             }
             finally
             {
@@ -178,7 +178,7 @@ namespace ClaudeUsageTray
                 double remaining = RemainingOf(window);
                 var color = stale ? Palette.Gray : Palette.ForRemaining(remaining, _settings);
                 string sub = window is null
-                    ? (isSession ? "окно ещё не начато" : string.Empty)
+                    ? (isSession ? "window not started yet" : string.Empty)
                     : FormatReset(window.ResetsAt);
                 return new BarModel(remaining, sub, color);
             }
@@ -189,17 +189,17 @@ namespace ClaudeUsageTray
             {
                 footer = _last is null
                     ? _error
-                    : $"{_error}\nПоказаны данные от {_last.FetchedAt.ToLocalTime():HH:mm}.";
+                    : $"{_error}\nShowing data from {_last.FetchedAt.ToLocalTime():HH:mm}.";
                 warning = true;
             }
             else if (_last is not null)
             {
-                footer = $"Обновлено в {_last.FetchedAt.ToLocalTime():HH:mm} · клик — обновить";
+                footer = $"Updated at {_last.FetchedAt.ToLocalTime():HH:mm} · click to refresh";
                 warning = false;
             }
             else
             {
-                footer = "Загрузка…";
+                footer = "Loading…";
                 warning = false;
             }
 
@@ -214,9 +214,9 @@ namespace ClaudeUsageTray
 
             var local = resetsAt.Value.ToLocalTime();
             var left = local - DateTimeOffset.Now;
-            if (left <= TimeSpan.Zero) return "сброс вот-вот";
-            if (left < TimeSpan.FromHours(24)) return $"сброс через {FormatSpan(left)}";
-            return "сброс " + local.ToString("ddd HH:mm", Ru);
+            if (left <= TimeSpan.Zero) return "resets any moment";
+            if (left < TimeSpan.FromHours(24)) return $"resets in {FormatSpan(left)}";
+            return "resets " + local.ToString("ddd HH:mm", Culture);
         }
 
         private static string FormatSpan(TimeSpan span)
@@ -224,9 +224,9 @@ namespace ClaudeUsageTray
             int totalMinutes = Math.Max(1, (int)Math.Ceiling(span.TotalMinutes));
             int h = totalMinutes / 60;
             int m = totalMinutes % 60;
-            if (h == 0) return $"{m} мин";
-            if (m == 0) return $"{h} ч";
-            return $"{h} ч {m} мин";
+            if (h == 0) return $"{m} min";
+            if (m == 0) return $"{h} h";
+            return $"{h} h {m} min";
         }
 
         // ---------------------------------------------------------------- hover popup
@@ -356,7 +356,7 @@ namespace ClaudeUsageTray
             catch (Exception ex)
             {
                 _autostartItem.Checked = SafeIsAutostart();
-                Forms.MessageBox.Show("Не удалось изменить автозапуск: " + ex.Message, "Claude Usage Tray",
+                Forms.MessageBox.Show("Could not change autostart: " + ex.Message, "Claude Usage Tray",
                     Forms.MessageBoxButtons.OK, Forms.MessageBoxIcon.Warning);
             }
         }

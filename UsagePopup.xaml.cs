@@ -45,7 +45,7 @@ namespace ClaudeUsageTray
         {
             double remaining = Math.Clamp(bar.RemainingPercent ?? 0, 0, 100);
 
-            percent.Text = bar.RemainingPercent is null ? "—" : $"осталось {Math.Round(remaining):0}%";
+            percent.Text = bar.RemainingPercent is null ? "—" : $"{Math.Round(remaining):0}% left";
             fillColumn.Width = new GridLength(remaining, GridUnitType.Star);
             restColumn.Width = new GridLength(100 - remaining, GridUnitType.Star);
 

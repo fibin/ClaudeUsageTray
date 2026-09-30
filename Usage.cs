@@ -69,7 +69,7 @@ namespace ClaudeUsageTray
             if (!File.Exists(path))
             {
                 throw new UsageException(UsageErrorKind.NoToken,
-                    "Не найден вход Claude Code. Войдите в Claude Code или укажите токен в настройках.");
+                    "Claude Code login not found. Sign in to Claude Code or set a token in settings.");
             }
 
             try
@@ -80,7 +80,7 @@ namespace ClaudeUsageTray
                 if (!doc.RootElement.TryGetProperty("claudeAiOauth", out var oauth) || oauth.ValueKind != JsonValueKind.Object)
                 {
                     throw new UsageException(UsageErrorKind.NoToken,
-                        "В файле входа Claude Code нет OAuth-токена подписки.");
+                        "Claude Code login file has no subscription OAuth token.");
                 }
 
                 string? token = oauth.TryGetProperty("accessToken", out var t) && t.ValueKind == JsonValueKind.String
@@ -96,13 +96,13 @@ namespace ClaudeUsageTray
                 if (string.IsNullOrWhiteSpace(token))
                 {
                     throw new UsageException(UsageErrorKind.NoToken,
-                        "В файле входа Claude Code нет OAuth-токена подписки.");
+                        "Claude Code login file has no subscription OAuth token.");
                 }
 
                 if (expiresAt is { } exp && exp <= DateTimeOffset.UtcNow)
                 {
                     throw new UsageException(UsageErrorKind.TokenExpired,
-                        "Токен Claude Code истёк. Запустите Claude Code (он обновит вход) или укажите долгоживущий токен в настройках.");
+                        "Claude Code token has expired. Run Claude Code to refresh it, or set a long-lived token in settings.");
                 }
 
                 return new TokenInfo(token, expiresAt, path);
@@ -113,7 +113,7 @@ namespace ClaudeUsageTray
             }
             catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
             {
-                throw new UsageException(UsageErrorKind.NoToken, "Не удалось прочитать файл входа Claude Code.", null, ex);
+                throw new UsageException(UsageErrorKind.NoToken, "Could not read the Claude Code login file.", null, ex);
             }
         }
     }
@@ -137,7 +137,7 @@ namespace ClaudeUsageTray
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
-                throw new UsageException(UsageErrorKind.Network, "Нет связи с сервером.", null, ex);
+                throw new UsageException(UsageErrorKind.Network, "Cannot reach the server.", null, ex);
             }
 
             using (response)
@@ -145,7 +145,7 @@ namespace ClaudeUsageTray
                 if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 {
                     throw new UsageException(UsageErrorKind.Unauthorized,
-                        $"Сервер отклонил токен ({(int)response.StatusCode}). Перезайдите в Claude Code или обновите токен.");
+                        $"The server rejected the token ({(int)response.StatusCode}). Sign in to Claude Code again or update the token.");
                 }
 
                 if (response.StatusCode == HttpStatusCode.TooManyRequests)
@@ -155,12 +155,12 @@ namespace ClaudeUsageTray
                     {
                         retry = date - DateTimeOffset.UtcNow;
                     }
-                    throw new UsageException(UsageErrorKind.RateLimited, "Сервер просит подождать (429).", retry);
+                    throw new UsageException(UsageErrorKind.RateLimited, "Rate limited by the server (429).", retry);
                 }
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    throw new UsageException(UsageErrorKind.Network, $"Сервер ответил {(int)response.StatusCode}.");
+                    throw new UsageException(UsageErrorKind.Network, $"Server responded with {(int)response.StatusCode}.");
                 }
 
                 var json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -181,7 +181,7 @@ namespace ClaudeUsageTray
                 var root = doc.RootElement;
                 if (root.ValueKind != JsonValueKind.Object)
                 {
-                    throw new UsageException(UsageErrorKind.BadResponse, "Неожиданный ответ сервера.");
+                    throw new UsageException(UsageErrorKind.BadResponse, "Unexpected server response.");
                 }
 
                 bool hasFive = root.TryGetProperty("five_hour", out var five);
@@ -189,7 +189,7 @@ namespace ClaudeUsageTray
                 if (!hasFive && !hasSeven)
                 {
                     throw new UsageException(UsageErrorKind.BadResponse,
-                        "В ответе нет данных о лимитах — возможно, формат API изменился.");
+                        "The response has no usage data; the API format may have changed.");
                 }
 
                 return new UsageSnapshot(
@@ -199,7 +199,7 @@ namespace ClaudeUsageTray
             }
             catch (JsonException ex)
             {
-                throw new UsageException(UsageErrorKind.BadResponse, "Сервер вернул не JSON.", null, ex);
+                throw new UsageException(UsageErrorKind.BadResponse, "The server did not return JSON.", null, ex);
             }
         }
 

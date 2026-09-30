@@ -28,7 +28,7 @@
         </Border.Effect>
 
         <StackPanel>
-            <TextBlock Text="Claude · лимиты подписки"
+            <TextBlock Text="Claude · subscription usage"
                        Foreground="#FFFFFFFF"
                        FontSize="13"
                        FontWeight="SemiBold"
@@ -36,7 +36,7 @@
 
             <!-- 5-hour session -->
             <Grid>
-                <TextBlock Text="Сессия (5 ч)" Foreground="#CCFFFFFF"/>
+                <TextBlock Text="Session (5 h)" Foreground="#CCFFFFFF"/>
                 <TextBlock x:Name="SessionPercent" HorizontalAlignment="Right"
                            Foreground="#FFFFFFFF" FontWeight="SemiBold"/>
             </Grid>
@@ -52,7 +52,7 @@
 
             <!-- 7-day window -->
             <Grid>
-                <TextBlock Text="Неделя" Foreground="#CCFFFFFF"/>
+                <TextBlock Text="Week" Foreground="#CCFFFFFF"/>
                 <TextBlock x:Name="WeekPercent" HorizontalAlignment="Right"
                            Foreground="#FFFFFFFF" FontWeight="SemiBold"/>
             </Grid>

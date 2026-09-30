@@ -20,77 +20,83 @@ namespace ClaudeUsageTray
         }
     }
 
-    /// <summary>Draws the tray "stack": a column of segments filled from the bottom.</summary>
+    /// <summary>Draws the tray icon: a vertical battery with a solid fill rising from the bottom.</summary>
     public static class IconRenderer
     {
-        /// <param name="remainingPercent">0..100, or null when there is no data yet (empty gray stack).</param>
+        private static readonly Color ShellFill = Color.FromArgb(215, 22, 22, 22);
+        private static readonly Color Outline = Color.FromArgb(235, 225, 225, 225);
+        // Mid-gray so the terminal cap stays visible on both light and dark taskbars.
+        private static readonly Color Cap = Color.FromArgb(235, 170, 170, 170);
+
+        /// <param name="remainingPercent">0..100, or null when there is no data yet (empty gray battery).</param>
         public static Bitmap RenderBitmap(double? remainingPercent, Color color, int size)
         {
             size = Math.Max(16, size);
             var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb);
 
             using var g = Graphics.FromImage(bmp);
-            g.SmoothingMode = SmoothingMode.None;
-            g.PixelOffsetMode = PixelOffsetMode.None;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
             g.Clear(Color.Transparent);
 
-            // Outer body: dark fill + light frame reads on both light and dark taskbars.
-            int w = Math.Max(9, (int)Math.Round(size * 0.56));
-            if ((size - w) % 2 != 0) w++;
-            int x0 = (size - w) / 2;
-            int y0 = (int)Math.Round(size * 0.03);
-            int h = size - 2 * y0;
+            // ---- geometry (whole pixels so edges stay crisp at 16 px)
+            int capH = Math.Max(2, (int)Math.Round(size * 0.10));
+            int capW = Math.Max(4, (int)Math.Round(size * 0.34));
+            if ((size - capW) % 2 != 0) capW++;
 
-            using (var body = new SolidBrush(Color.FromArgb(215, 22, 22, 22)))
+            int bodyW = Math.Max(10, (int)Math.Round(size * 0.62));
+            if ((size - bodyW) % 2 != 0) bodyW++;
+            int bodyX = (size - bodyW) / 2;
+            int bodyY = size < 24 ? capH - 1 : capH;   // at small sizes the cap overlaps the outline by 1 px
+            int bodyH = size - bodyY;
+
+            float pen = Math.Max(1, (int)Math.Round(size / 16.0));
+            int gap = size < 24 ? 1 : 2;
+            float radius = Math.Max(2f, size * 0.16f);
+
+            // ---- terminal cap
+            float capX = (size - capW) / 2f;
+            using (var capPath = RoundedRect(new RectangleF(capX, 0, capW, capH + 1), 1f))
+            using (var capBrush = new SolidBrush(Cap))
             {
-                g.FillRectangle(body, x0, y0, w, h);
+                g.FillPath(capBrush, capPath);
             }
-            using (var frame = new Pen(Color.FromArgb(235, 225, 225, 225)))
+
+            // ---- shell: dark fill + light outline, readable on light and dark taskbars
+            var body = new RectangleF(bodyX + pen / 2f, bodyY + pen / 2f, bodyW - pen, bodyH - pen);
+            using (var bodyPath = RoundedRect(body, radius))
+            using (var shellBrush = new SolidBrush(ShellFill))
+            using (var outlinePen = new Pen(Outline, pen))
             {
-                g.DrawRectangle(frame, x0, y0, w - 1, h - 1);
+                g.FillPath(shellBrush, bodyPath);
+                g.DrawPath(outlinePen, bodyPath);
             }
 
-            // Inner area: 1px frame + 1px gap on every side.
-            int ix = x0 + 2;
-            int iy = y0 + 2;
-            int iw = w - 4;
-            int ih = h - 4;
+            // ---- inner well and the solid charge level
+            float inset = pen + gap;
+            var inner = new RectangleF(bodyX + inset, bodyY + inset, bodyW - 2 * inset, bodyH - 2 * inset);
+            float innerRadius = Math.Max(0.8f, radius - inset);
 
-            int n = size <= 20 ? 4 : 5;
-            int gap = size < 32 ? 1 : 2;
-            int[] heights = SplitHeights(ih - gap * (n - 1), n);
-
-            double level = Math.Clamp((remainingPercent ?? 0) / 100.0, 0.0, 1.0);
             var fillColor = remainingPercent is null ? Palette.Gray : color;
+            double level = Math.Clamp((remainingPercent ?? 0) / 100.0, 0.0, 1.0);
 
-            using var emptyBrush = new SolidBrush(Color.FromArgb(55, fillColor));
-            using var fillBrush = new SolidBrush(fillColor);
-            using var shineBrush = new SolidBrush(Blend(fillColor, Color.White, 0.40));
-
-            // Segments are laid out bottom-up: index 0 is the bottom one.
-            int bottom = iy + ih;
-            for (int i = 0; i < n; i++)
+            using var innerPath = RoundedRect(inner, innerRadius);
+            using (var trackBrush = new SolidBrush(Color.FromArgb(45, fillColor)))
             {
-                int sh = heights[i];
-                int top = bottom - sh;
+                g.FillPath(trackBrush, innerPath);
+            }
 
-                g.FillRectangle(emptyBrush, ix, top, iw, sh);
-
-                double frac = Math.Clamp(level * n - i, 0.0, 1.0);
-                if (frac > 0)
+            if (level > 0)
+            {
+                // Even a nearly empty battery shows a 1 px sliver so "almost out" stays visible.
+                float fillH = Math.Max(1f, (float)(inner.Height * level));
+                var state = g.Save();
+                g.SetClip(new RectangleF(inner.X - 1, inner.Bottom - fillH, inner.Width + 2, fillH + 1));
+                using (var fillBrush = new SolidBrush(fillColor))
                 {
-                    // Even a nearly-empty stack shows a 1px sliver so "almost out" is visible.
-                    int filled = Math.Max(1, (int)Math.Round(sh * frac));
-                    g.FillRectangle(fillBrush, ix, bottom - filled, iw, filled);
-
-                    // A lighter top edge on each filled block gives the "glow".
-                    if (filled >= 3)
-                    {
-                        g.FillRectangle(shineBrush, ix, bottom - filled, iw, 1);
-                    }
+                    g.FillPath(fillBrush, innerPath);
                 }
-
-                bottom = top - gap;
+                g.Restore(state);
             }
 
             return bmp;
@@ -104,26 +110,22 @@ namespace ClaudeUsageTray
             return (Icon.FromHandle(handle), handle);
         }
 
-        /// <summary>Splits total pixels into n near-equal parts; the extra pixels go to the lower segments.</summary>
-        private static int[] SplitHeights(int total, int n)
+        private static GraphicsPath RoundedRect(RectangleF r, float radius)
         {
-            var result = new int[n];
-            int baseH = Math.Max(1, total / n);
-            int rest = Math.Max(0, total - baseH * n);
-            for (int i = 0; i < n; i++)
+            float d = Math.Min(radius * 2, Math.Min(r.Width, r.Height));
+            var path = new GraphicsPath();
+            if (d <= 0.01f)
             {
-                result[i] = baseH + (i < rest ? 1 : 0);
+                path.AddRectangle(r);
+                return path;
             }
-            return result;
-        }
 
-        private static Color Blend(Color a, Color b, double t)
-        {
-            return Color.FromArgb(
-                a.A,
-                (int)Math.Round(a.R + (b.R - a.R) * t),
-                (int)Math.Round(a.G + (b.G - a.G) * t),
-                (int)Math.Round(a.B + (b.B - a.B) * t));
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
         }
     }
 }
