@@ -123,3 +123,7 @@ known data stays on screen.
 | `UsagePopup.xaml(.cs)` | Popup with the two bars |
 | `AppSettings.cs` | settings.json |
 | `Native.cs` | WinAPI and autostart (HKCU\…\Run) |
+
+## License
+
+[MIT](LICENSE) © 2026 Dmytro Viienko
