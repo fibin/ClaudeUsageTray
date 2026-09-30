@@ -1,0 +1,13 @@
+## .NET build output
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+## Local settings / secrets
+settings.json
+*.pubxml.user

@@ -1,0 +1,73 @@
+<Window x:Class="ClaudeUsageTray.UsagePopup"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Claude usage"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        Focusable="False"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        FontFamily="Segoe UI"
+        FontSize="12">
+
+    <Border Margin="10"
+            Width="280"
+            Padding="14,12,14,12"
+            CornerRadius="8"
+            Background="#F2202124"
+            BorderBrush="#33FFFFFF"
+            BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="14" ShadowDepth="2" Opacity="0.45" Color="Black"/>
+        </Border.Effect>
+
+        <StackPanel>
+            <TextBlock Text="Claude · лимиты подписки"
+                       Foreground="#FFFFFFFF"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,12"/>
+
+            <!-- 5-hour session -->
+            <Grid>
+                <TextBlock Text="Сессия (5 ч)" Foreground="#CCFFFFFF"/>
+                <TextBlock x:Name="SessionPercent" HorizontalAlignment="Right"
+                           Foreground="#FFFFFFFF" FontWeight="SemiBold"/>
+            </Grid>
+            <Grid Height="8" Margin="0,6,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="SessionFillColumn" Width="*"/>
+                    <ColumnDefinition x:Name="SessionRestColumn" Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.ColumnSpan="2" CornerRadius="4" Background="#26FFFFFF"/>
+                <Border x:Name="SessionFill" Grid.Column="0" CornerRadius="4"/>
+            </Grid>
+            <TextBlock x:Name="SessionReset" Foreground="#99FFFFFF" FontSize="11" Margin="0,0,0,12"/>
+
+            <!-- 7-day window -->
+            <Grid>
+                <TextBlock Text="Неделя" Foreground="#CCFFFFFF"/>
+                <TextBlock x:Name="WeekPercent" HorizontalAlignment="Right"
+                           Foreground="#FFFFFFFF" FontWeight="SemiBold"/>
+            </Grid>
+            <Grid Height="8" Margin="0,6,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="WeekFillColumn" Width="*"/>
+                    <ColumnDefinition x:Name="WeekRestColumn" Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.ColumnSpan="2" CornerRadius="4" Background="#26FFFFFF"/>
+                <Border x:Name="WeekFill" Grid.Column="0" CornerRadius="4"/>
+            </Grid>
+            <TextBlock x:Name="WeekReset" Foreground="#99FFFFFF" FontSize="11"/>
+
+            <Border Height="1" Background="#1FFFFFFF" Margin="0,12,0,8"/>
+            <TextBlock x:Name="Footer" Foreground="#80FFFFFF" FontSize="11" TextWrapping="Wrap"/>
+        </StackPanel>
+    </Border>
+</Window>
