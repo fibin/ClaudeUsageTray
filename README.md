@@ -1,76 +1,77 @@
 # Claude Usage Tray
 
-Иконка в трее Windows, показывающая остаток лимита подписки Claude (Pro/Max).
+A Windows tray icon that shows how much of your Claude subscription (Pro/Max) usage limit is left.
 
-- **Иконка** — стек из сегментов, заполнен по остатку 5-часового окна.
-  Зелёный > 50%, жёлтый 21–50%, красный ≤ 20%, серый — нет данных или они устарели.
-- **Наведение** — всплывающая панель с двумя полосками: сессия (5 ч) и неделя, с временем сброса.
-- **Левый клик** — обновить сейчас (не чаще раза в 30 секунд).
-- **Правый клик** — меню: обновить, открыть claude.ai/settings/usage, настройки, автозапуск, выход.
+- **Icon**: a stack of segments filled by what's left of the 5-hour session window.
+  Green above 50%, yellow at 21–50%, red at 20% or below, gray when there's no data or it's stale.
+- **Hover**: a popup with two bars, one for the session (5 h) and one for the week, plus reset times.
+- **Left click**: refresh now (at most once every 30 seconds).
+- **Right click**: menu with refresh, open claude.ai/settings/usage, settings, start with Windows, exit.
 
-![Иконка на разных уровнях](icon-preview.png)
+![Icon at different levels](icon-preview.png)
 
-## Сборка
+## Build
 
-Нужен .NET 8 SDK (или новее).
+Requires the .NET 8 SDK (or newer).
 
 ```powershell
 cd ClaudeUsageTray
-dotnet run                     # запустить из исходников
+dotnet run                     # run from source
 
-# один exe-файл (нужен установленный .NET 8 Desktop Runtime):
+# single exe (requires the .NET 8 Desktop Runtime):
 dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
-# результат: bin\Release\net8.0-windows\win-x64\publish\ClaudeUsageTray.exe
+# output: bin\Release\net8.0-windows\win-x64\publish\ClaudeUsageTray.exe
 ```
 
-## Откуда берутся данные
+## Where the data comes from
 
-Приложение делает GET к `https://api.anthropic.com/api/oauth/usage` — тому же эндпоинту,
-которым пользуется Claude Code для `/usage`. **Он не документирован**: может измениться или
-пропасть без предупреждения. Если это случится, в панели будет «формат API изменился».
+The app sends a GET request to `https://api.anthropic.com/api/oauth/usage`, the same endpoint
+Claude Code uses for `/usage`. **This endpoint is undocumented**: it may change or disappear
+without notice. If that happens, the popup will say the API format has changed.
 
-Токен ищется по порядку:
+The token is looked up in this order:
 
-1. `oauthToken` в `%APPDATA%\ClaudeUsageTray\settings.json`
-2. переменная окружения `CLAUDE_CODE_OAUTH_TOKEN`
-3. файл входа Claude Code: `%USERPROFILE%\.claude\.credentials.json`
-   (или `%CLAUDE_CONFIG_DIR%\.credentials.json`)
+1. `oauthToken` in `%APPDATA%\ClaudeUsageTray\settings.json`
+2. the `CLAUDE_CODE_OAUTH_TOKEN` environment variable
+3. Claude Code's login file: `%USERPROFILE%\.claude\.credentials.json`
+   (or `%CLAUDE_CONFIG_DIR%\.credentials.json`)
 
-Приложение **никогда не обновляет токен само** — Claude Code ротирует refresh-токены,
-и чужой refresh разлогинил бы его. Поэтому если Claude Code долго не запускался,
-его токен истекает и иконка становится серой.
+The app **never refreshes the token itself**. Claude Code rotates its refresh tokens, so a
+refresh from another program would log Claude Code out. As a result, if Claude Code hasn't
+been run for a while, its token expires and the icon turns gray.
 
-Надёжнее выпустить долгоживущий токен один раз:
+A more reliable option is to issue a long-lived token once:
 
 ```powershell
 claude setup-token
 ```
 
-и вписать его в `oauthToken` в settings.json (или в переменную `CLAUDE_CODE_OAUTH_TOKEN`).
-Файл настроек хранит токен открытым текстом — не выкладывайте его никуда.
+and put it in `oauthToken` in settings.json (or in the `CLAUDE_CODE_OAUTH_TOKEN` variable).
+The settings file stores the token in plain text, so don't share or commit it.
 
-## Настройки
+## Settings
 
-`%APPDATA%\ClaudeUsageTray\settings.json` создаётся при первом запуске и перечитывается
-перед каждым обновлением, перезапуск не нужен.
+`%APPDATA%\ClaudeUsageTray\settings.json` is created on first run and re-read before every
+refresh, so changes apply without a restart.
 
-| Поле | По умолчанию | Что делает |
+| Field | Default | What it does |
 |---|---|---|
-| `pollIntervalMinutes` | `3` | Как часто опрашивать сервер. Эндпоинт отвечает 429 на частые запросы — не ставьте меньше 2–3 минут. |
-| `warnBelowPercent` | `50` | Остаток, при котором цвет становится жёлтым. |
-| `criticalBelowPercent` | `20` | Остаток, при котором цвет становится красным. |
-| `usageUrl` | `https://api.anthropic.com/api/oauth/usage` | Адрес эндпоинта. |
-| `oauthToken` | `null` | Токен вручную (см. выше). |
+| `pollIntervalMinutes` | `3` | How often to poll the server. The endpoint returns 429 on frequent requests, so don't go below 2–3 minutes. |
+| `warnBelowPercent` | `50` | Remaining percentage at which the color turns yellow. |
+| `criticalBelowPercent` | `20` | Remaining percentage at which the color turns red. |
+| `usageUrl` | `https://api.anthropic.com/api/oauth/usage` | Endpoint address. |
+| `oauthToken` | `null` | Manually supplied token (see above). |
 
-При ответе 429 интервал растёт экспоненциально (до 30 минут), последние данные остаются на экране.
+On a 429 response the polling interval backs off exponentially (up to 30 minutes), and the last
+known data stays on screen.
 
-## Структура
+## Project layout
 
-| Файл | Что внутри |
+| File | Contents |
 |---|---|
-| `TrayController.cs` | Иконка в трее, опрос, всплывающая панель, меню |
-| `Usage.cs` | HTTP-клиент, разбор ответа, поиск токена |
-| `IconRenderer.cs` | Рисование иконки-стека, цвета |
-| `UsagePopup.xaml(.cs)` | Панель с двумя полосками |
+| `TrayController.cs` | Tray icon, polling, hover popup, menu |
+| `Usage.cs` | HTTP client, response parsing, token lookup |
+| `IconRenderer.cs` | Drawing the stack icon, colors |
+| `UsagePopup.xaml(.cs)` | Popup with the two bars |
 | `AppSettings.cs` | settings.json |
-| `Native.cs` | WinAPI и автозапуск (HKCU\…\Run) |
+| `Native.cs` | WinAPI and autostart (HKCU\…\Run) |
