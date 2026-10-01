@@ -46,6 +46,20 @@ namespace ClaudeUsageTray
     /// <summary>Finds the OAuth token. Read-only: it never refreshes tokens, because Claude Code rotates them.</summary>
     public static class CredentialStore
     {
+        /// <summary>Claude Code's login file: %CLAUDE_CONFIG_DIR%\.credentials.json or %USERPROFILE%\.claude\.credentials.json.</summary>
+        public static string CredentialsPath
+        {
+            get
+            {
+                var configDir = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+                if (string.IsNullOrWhiteSpace(configDir))
+                {
+                    configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude");
+                }
+                return Path.Combine(configDir, ".credentials.json");
+            }
+        }
+
         public static TokenInfo Load(AppSettings settings)
         {
             if (!string.IsNullOrWhiteSpace(settings.OauthToken))
@@ -59,13 +73,7 @@ namespace ClaudeUsageTray
                 return new TokenInfo(env.Trim(), null, "CLAUDE_CODE_OAUTH_TOKEN");
             }
 
-            var configDir = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
-            if (string.IsNullOrWhiteSpace(configDir))
-            {
-                configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude");
-            }
-
-            var path = Path.Combine(configDir, ".credentials.json");
+            var path = CredentialsPath;
             if (!File.Exists(path))
             {
                 throw new UsageException(UsageErrorKind.NoToken,
@@ -102,7 +110,7 @@ namespace ClaudeUsageTray
                 if (expiresAt is { } exp && exp <= DateTimeOffset.UtcNow)
                 {
                     throw new UsageException(UsageErrorKind.TokenExpired,
-                        "Claude Code token has expired. Run Claude Code to refresh it, or set a long-lived token in settings.");
+                        "Claude Code token has expired. It renews the next time you use Claude Code, and this icon will pick it up automatically. To avoid this, set a long-lived token from `claude setup-token` in settings.");
                 }
 
                 return new TokenInfo(token, expiresAt, path);

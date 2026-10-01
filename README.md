@@ -86,7 +86,8 @@ The token is looked up in this order:
 
 The app **never refreshes the token itself**. Claude Code rotates its refresh tokens, so a
 refresh from another program would log Claude Code out. As a result, if Claude Code hasn't
-been run for a while, its token expires and the icon turns gray.
+been used for a while, its token expires and the icon turns gray. As soon as you use Claude
+Code again it renews the token, and the app picks that up within a few seconds.
 
 A more reliable option is to issue a long-lived token once:
 
@@ -110,8 +111,32 @@ refresh, so changes apply without a restart.
 | `usageUrl` | `https://api.anthropic.com/api/oauth/usage` | Endpoint address. |
 | `oauthToken` | `null` | Manually supplied token (see above). |
 
+## Automatic refresh
+
+Besides polling every `pollIntervalMinutes`, the app refreshes on its own when:
+
+- Claude Code's login file changes (Claude Code renewed its token);
+- `settings.json` changes (for example, you pasted a token);
+- the computer wakes from sleep, the session is unlocked, or the network comes back.
+
+Failed attempts are retried sooner than the regular interval: a missing or expired token is
+re-checked every 30 seconds (a local file read, no network request), and network errors such as
+the ones right after Windows starts are retried after 15 s, 30 s, 60 s and so on.
 On a 429 response the polling interval backs off exponentially (up to 30 minutes), and the last
 known data stays on screen.
+
+## Troubleshooting
+
+Hover over the icon: the bottom of the popup says why the data is missing. For more detail,
+right-click the icon and choose **Open log**
+(`%APPDATA%\ClaudeUsageTray\log.txt`, errors and state changes only, never tokens).
+
+| Message | What to do |
+|---|---|
+| Claude Code login not found | Sign in to Claude Code on this computer, or set `oauthToken` in settings. |
+| Claude Code token has expired | Use Claude Code once (it renews the token), or set a long-lived token from `claude setup-token`. |
+| The server rejected the token | Sign in to Claude Code again, or replace `oauthToken`. |
+| Cannot reach the server | Check the connection; the app keeps retrying on its own. |
 
 ## Project layout
 
@@ -123,6 +148,7 @@ known data stays on screen.
 | `UsagePopup.xaml(.cs)` | Popup with the two bars |
 | `AppSettings.cs` | settings.json |
 | `Native.cs` | WinAPI and autostart (HKCU\…\Run) |
+| `Log.cs` | log.txt in %APPDATA%\ClaudeUsageTray |
 
 ## License
 
