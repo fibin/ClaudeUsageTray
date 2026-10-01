@@ -26,6 +26,9 @@ To start it with Windows, right-click the icon and enable **Start with Windows**
 The exe is not code-signed, so SmartScreen may warn on first launch:
 click **More info → Run anyway**.
 
+If the icon stays gray (hover over it to see why), the app can't find a usable token:
+follow [Set up a long-lived token](#set-up-a-long-lived-token-recommended).
+
 ## Keep the icon always visible
 
 By default Windows hides new tray icons in the overflow menu (or, if the hidden icon menu is
@@ -49,9 +52,6 @@ onto the taskbar.
 
 Windows remembers this setting per exe path. If you move the exe or switch from `dotnet run`
 to a downloaded build, turn the switch on again for the new location.
-
-The exe is not code-signed, so SmartScreen may warn on first launch:
-click **More info → Run anyway**.
 
 ## Build from source
 
@@ -89,14 +89,98 @@ refresh from another program would log Claude Code out. As a result, if Claude C
 been used for a while, its token expires and the icon turns gray. As soon as you use Claude
 Code again it renews the token, and the app picks that up within a few seconds.
 
-A more reliable option is to issue a long-lived token once:
+A more reliable option is a long-lived token: see
+[Set up a long-lived token](#set-up-a-long-lived-token-recommended) below.
+
+## Set up a long-lived token (recommended)
+
+If the icon is gray after Windows starts, or the popup says the token has expired, the app is
+relying on a short-lived token from Claude Code or the Claude desktop app. A long-lived token
+removes that dependency. You only need to do this once per computer.
+
+### 1. Install the Claude Code CLI
+
+Skip this step if `claude --version` already prints a version number.
+
+Open **PowerShell** (no administrator rights needed) and run the official installer:
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+Close the terminal and open a new one, then check the installation:
+
+```powershell
+claude --version
+```
+
+### 2. If `claude` is "not recognized"
+
+```
+claude : The term 'claude' is not recognized as the name of a cmdlet, function, script file, or operable program.
+```
+
+The installer puts `claude.exe` in `%USERPROFILE%\.local\bin`, but your terminal doesn't see that
+folder yet. You can either run it by its full path:
+
+```powershell
+& "$env:USERPROFILE\.local\bin\claude.exe" --version
+```
+
+or add the folder to your user `PATH` once:
+
+```powershell
+[Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$env:USERPROFILE\.local\bin", "User")
+```
+
+After changing `PATH`, restart the **whole app** that hosts your terminal (Windows Terminal,
+VS Code and so on), not just the tab: new tabs inherit the `PATH` the app started with.
+
+If even the full path fails, check that the file exists:
+
+```powershell
+Get-ChildItem "$env:USERPROFILE\.local\bin"
+```
+
+### 3. Generate the token
 
 ```powershell
 claude setup-token
 ```
 
-and put it in `oauthToken` in settings.json (or in the `CLAUDE_CODE_OAUTH_TOKEN` variable).
-The settings file stores the token in plain text, so don't share or commit it.
+(or `& "$env:USERPROFILE\.local\bin\claude.exe" setup-token` if `claude` isn't on your `PATH`).
+
+1. The command prints a sign-in link and usually opens it in your browser.
+   If the browser doesn't open, copy the link into the address bar yourself.
+2. Sign in with your Claude account and click **Authorize**.
+3. The browser shows a code. The terminal is waiting at `Paste code if prompted >`:
+   paste the code there (right-click or `Ctrl+V`) and press **Enter**.
+   If the browser hands the sign-in back to the terminal on its own, there's nothing to paste.
+4. The terminal prints a token that starts with `sk-ant-oat01-`. Copy all of it.
+   It's shown only once.
+
+### 4. Give the token to the app
+
+Right-click the tray icon, choose **Settings (settings.json)** and fill in `oauthToken`:
+
+```json
+{
+  "pollIntervalMinutes": 3,
+  "warnBelowPercent": 50,
+  "criticalBelowPercent": 20,
+  "usageUrl": "https://api.anthropic.com/api/oauth/usage",
+  "oauthToken": "sk-ant-oat01-..."
+}
+```
+
+Save the file (`Ctrl+S`). The app notices the change and turns the icon colored within a few
+seconds; no restart is needed.
+
+Alternatively, set the `CLAUDE_CODE_OAUTH_TOKEN` environment variable instead of editing the file.
+
+> **Keep the token secret.** It gives access to your Claude subscription. `settings.json` stores
+> it in plain text in `%APPDATA%\ClaudeUsageTray`, outside any repository. Don't paste it into
+> chats, issues or screenshots. If it leaks, generate a new one with `claude setup-token`.
 
 ## Settings
 
@@ -133,10 +217,12 @@ right-click the icon and choose **Open log**
 
 | Message | What to do |
 |---|---|
-| Claude Code login not found | Sign in to Claude Code on this computer, or set `oauthToken` in settings. |
-| Claude Code token has expired | Use Claude Code once (it renews the token), or set a long-lived token from `claude setup-token`. |
-| The server rejected the token | Sign in to Claude Code again, or replace `oauthToken`. |
+| Claude Code login not found | [Set up a long-lived token](#set-up-a-long-lived-token-recommended), or sign in to Claude Code on this computer. |
+| Claude Code token has expired | [Set up a long-lived token](#set-up-a-long-lived-token-recommended), or use Claude Code once (it renews the token). |
+| The server rejected the token | The token was revoked or mistyped: generate a new one with `claude setup-token` and replace `oauthToken`. |
 | Cannot reach the server | Check the connection; the app keeps retrying on its own. |
+| Gray icon right after Windows starts | Usually the token expired overnight: [set up a long-lived token](#set-up-a-long-lived-token-recommended). |
+| `claude` is not recognized | See [If `claude` is "not recognized"](#2-if-claude-is-not-recognized). |
 
 ## Project layout
 
